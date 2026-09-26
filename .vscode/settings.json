@@ -1,0 +1,12 @@
+{
+  "explorer.decorations.badges": false,
+  "explorer.decorations.colors": false,
+  "git.decorations.enabled": false,
+  "problems.decorations.enabled": false,
+  "workbench.editor.decorations.badges": false,
+  "workbench.editor.decorations.colors": false,
+  "scm.countBadge": "off",
+  "files.exclude": {
+    "**/.idea": true
+  }
+}
