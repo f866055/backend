@@ -37,13 +37,21 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  // Allowlist de orígenes: localhost, 127.0.0.1, FRONTEND_URL y cualquier IP local en la red Wi-Fi
-  const configuredCors = (
-    configService.get<string>('CORS_ORIGINS') || 'http://localhost:3001'
-  )
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  // Allowlist de orígenes: localhost, 127.0.0.1, FRONTEND_URL y producción Railway
+  const configuredCors = Array.from(
+    new Set([
+      'https://frontend-production-1824.up.railway.app',
+      'http://localhost:3001',
+      ...(
+        (configService.get<string>('CORS_ORIGIN') ||
+          configService.get<string>('CORS_ORIGINS') ||
+          '')
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean)
+      ),
+    ]),
+  );
 
   const rawFrontendUrl =
     configService.get<string>('FRONTEND_URL') ||

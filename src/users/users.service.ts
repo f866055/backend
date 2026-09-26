@@ -1,17 +1,65 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
+import { Role } from '../auth/enums/role.enum';
 
 const SALT_ROUNDS = 10;
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnApplicationBootstrap {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
   ) {}
+
+  async onApplicationBootstrap(): Promise<void> {
+    await this.ensureAdminUser();
+  }
+
+  async ensureAdminUser(
+    email = 'admin@garaje.com',
+    password = 'Garaje2026!',
+  ): Promise<void> {
+    try {
+      const existing = await this.findByEmail(email);
+      if (existing) {
+        let needsUpdate = false;
+        if (existing.role !== Role.ADMIN) {
+          existing.role = Role.ADMIN;
+          needsUpdate = true;
+        }
+        const matches = await bcrypt.compare(password, existing.password);
+        if (!matches) {
+          existing.password = await bcrypt.hash(password, SALT_ROUNDS);
+          needsUpdate = true;
+        }
+        if (needsUpdate) {
+          await this.usersRepository.save(existing);
+          console.log(
+            `[Seed] Usuario admin ${email} actualizado con rol ADMIN.`,
+          );
+        }
+        return;
+      }
+
+      const admin = this.usersRepository.create({
+        name: 'Admin',
+        lastname: 'Garage',
+        email,
+        password: await bcrypt.hash(password, SALT_ROUNDS),
+        role: Role.ADMIN,
+      });
+      await this.usersRepository.save(admin);
+      console.log(`[Seed] Usuario admin ${email} creado automáticamente.`);
+    } catch (error) {
+      console.warn(
+        '[Seed] No se pudo asegurar el usuario admin inicial:',
+        (error as Error).message,
+      );
+    }
+  }
 
   findAll(): Promise<User[]> {
     return this.usersRepository.find();
