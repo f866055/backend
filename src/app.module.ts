@@ -30,32 +30,49 @@ import { VisionModule } from './vision/vision.module';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
-        const dbPort = Number(
-          configService.get<string>('DB_PORT', '5432'),
-        );
+        const databaseUrl = configService.get<string>('DATABASE_URL');
+        const dbSsl = configService.get<string>('DB_SSL');
+        const sslOption =
+          dbSsl === 'true'
+            ? { rejectUnauthorized: false }
+            : dbSsl === 'false'
+              ? false
+              : undefined;
 
-        return {
+        const baseOptions: TypeOrmModuleOptions = {
           type: 'postgres',
-          host: configService.get<string>('DB_HOST', 'localhost'),
-          port: dbPort,
-          username: configService.get<string>('DB_USERNAME', 'postgres'),
-          password: configService.get<string>('DB_PASSWORD', 'postgres'),
-          database: configService.get<string>('DB_NAME', 'db_garaje'),
-
           autoLoadEntities: true,
-
           synchronize:
             configService.get<string>('NODE_ENV', 'development') !==
             'production',
-
           retryAttempts: 3,
           retryDelay: 1500,
-
           extra: {
             connectionTimeoutMillis: 5000,
             query_timeout: 10000,
             statement_timeout: 10000,
           },
+          ...(sslOption !== undefined ? { ssl: sslOption } : {}),
+        };
+
+        if (databaseUrl) {
+          return {
+            ...baseOptions,
+            url: databaseUrl,
+          };
+        }
+
+        const dbPort = Number(
+          configService.get<string>('DB_PORT', '5432'),
+        );
+
+        return {
+          ...baseOptions,
+          host: configService.get<string>('DB_HOST', 'localhost'),
+          port: dbPort,
+          username: configService.get<string>('DB_USERNAME', 'postgres'),
+          password: configService.get<string>('DB_PASSWORD', 'postgres'),
+          database: configService.get<string>('DB_NAME', 'db_garaje'),
         };
       },
     }),

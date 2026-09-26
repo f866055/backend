@@ -65,7 +65,7 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.setGlobalPrefix('api', {
-    exclude: ['health', ''],
+    exclude: ['health', '', 'api'],
   });
 
   app.useGlobalPipes(
@@ -75,7 +75,7 @@ async function bootstrap() {
     }),
   );
 
-  const port = configService.get<number>('PORT', 3000);
+  const port = Number(process.env.PORT || configService.get('PORT') || 3000);
 
   await app.listen(port, '0.0.0.0');
 
