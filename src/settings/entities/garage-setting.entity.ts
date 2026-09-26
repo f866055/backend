@@ -11,15 +11,15 @@ import {
  * TABLA: garage_settings (CONFIGURACIÓN OPERATIVA DEL ESTABLECIMIENTO)
  * ==============================================================================
  * Registro singleton que gobierna las reglas globales del garaje GaragePro:
- * 
+ *
  * 1. CAPACIDAD Y CONTROL DE AFORO (totalSpaces):
  *    - Define el número máximo de plazas físicas disponibles en el estacionamiento.
  *    - Se usa para calcular la ocupación porcentual y plazas libres en tiempo real.
- * 
+ *
  * 2. TARIFACIÓN GENERAL (ratePerHour, currency):
  *    - Tarifa horaria base aplicada en la caja al liquidar los tickets.
  *    - Moneda oficial del sistema (PEN, USD, EUR, etc.).
- * 
+ *
  * 3. IDENTIFICACIÓN Y ZONA HORARIA:
  *    - Nombre comercial que se imprime en los tickets y comprobantes.
  *    - `timezone`: Garantiza que el cálculo de horas y arqueo sea fiel a la hora local.

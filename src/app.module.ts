@@ -32,19 +32,30 @@ import { VisionModule } from './vision/vision.module';
       useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
         const databaseUrl = configService.get<string>('DATABASE_URL');
         const dbSsl = configService.get<string>('DB_SSL');
-        const sslOption =
-          dbSsl === 'true'
-            ? { rejectUnauthorized: false }
-            : dbSsl === 'false'
-              ? false
-              : undefined;
+        let sslOption: boolean | { rejectUnauthorized: boolean } | undefined;
+        if (dbSsl === 'true') {
+          sslOption = { rejectUnauthorized: false };
+        } else if (dbSsl === 'false') {
+          sslOption = false;
+        } else if (
+          databaseUrl &&
+          (databaseUrl.includes('sslmode=require') ||
+            databaseUrl.includes('rlwy.net') ||
+            databaseUrl.includes('railway.app'))
+        ) {
+          sslOption = { rejectUnauthorized: false };
+        }
+
+        const isProd =
+          configService.get<string>('NODE_ENV', 'development') === 'production';
+        const dbSync = configService.get<string>('DB_SYNC');
+        const synchronize =
+          dbSync === 'true' ? true : dbSync === 'false' ? false : !isProd;
 
         const baseOptions: TypeOrmModuleOptions = {
           type: 'postgres',
           autoLoadEntities: true,
-          synchronize:
-            configService.get<string>('NODE_ENV', 'development') !==
-            'production',
+          synchronize,
           retryAttempts: 3,
           retryDelay: 1500,
           extra: {
@@ -62,9 +73,7 @@ import { VisionModule } from './vision/vision.module';
           };
         }
 
-        const dbPort = Number(
-          configService.get<string>('DB_PORT', '5432'),
-        );
+        const dbPort = Number(configService.get<string>('DB_PORT', '5432'));
 
         return {
           ...baseOptions,
@@ -89,4 +98,4 @@ import { VisionModule } from './vision/vision.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

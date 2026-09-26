@@ -11,7 +11,10 @@ function getNetworkIps(): { name: string; ip: string }[] {
 
   for (const [name, netList] of Object.entries(interfaces)) {
     for (const net of netList || []) {
-      if ((net.family === 'IPv4' || (net as any).family === 4) && !net.internal) {
+      if (
+        (net.family === 'IPv4' || (net as any).family === 4) &&
+        !net.internal
+      ) {
         results.push({ name, ip: net.address });
       }
     }
@@ -34,7 +37,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  // Allowlist de orígenes: localhost, 127.0.0.1 y cualquier IP local en la red Wi-Fi
+  // Allowlist de orígenes: localhost, 127.0.0.1, FRONTEND_URL y cualquier IP local en la red Wi-Fi
   const configuredCors = (
     configService.get<string>('CORS_ORIGINS') || 'http://localhost:3001'
   )
@@ -42,13 +45,28 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+  const frontendUrl = configService.get<string>('FRONTEND_URL');
+  if (frontendUrl) {
+    frontendUrl
+      .split(',')
+      .map((url) => url.trim().replace(/\/+$/, ''))
+      .filter(Boolean)
+      .forEach((url) => {
+        if (!configuredCors.includes(url)) {
+          configuredCors.push(url);
+        }
+      });
+  }
+
   app.enableCors({
     origin: (origin, callback) => {
-      // Permitir peticiones sin origen (apps nativas, healthchecks, mobile web)
+      // Permitir peticiones sin origen (apps nativas, healthchecks, mobile web, Postman)
       if (!origin) return callback(null, true);
 
       const isAllowed =
         configuredCors.includes(origin) ||
+        /\.railway\.app$/.test(origin) ||
+        /\.vercel\.app$/.test(origin) ||
         /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(
           origin,
         );
@@ -83,8 +101,12 @@ async function bootstrap() {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
   const isProd = nodeEnv === 'production';
 
-  console.log(`\n🚀 Backend NestJS iniciado [Entorno: ${nodeEnv.toUpperCase()}]:`);
-  console.log(`   - Modo:     ${isProd ? 'Producción (TypeORM Sync: OFF, Cookies Seguras: ON)' : 'Desarrollo (TypeORM Sync: ON, Cookies Seguras: OFF)'}`);
+  console.log(
+    `\n🚀 Backend NestJS iniciado [Entorno: ${nodeEnv.toUpperCase()}]:`,
+  );
+  console.log(
+    `   - Modo:     ${isProd ? 'Producción (TypeORM Sync: OFF, Cookies Seguras: ON)' : 'Desarrollo (TypeORM Sync: ON, Cookies Seguras: OFF)'}`,
+  );
   console.log(`   - Local:    http://localhost:${port}`);
   if (networkIps.length > 0) {
     networkIps.forEach(({ name, ip }) => {

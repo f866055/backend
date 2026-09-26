@@ -6,7 +6,7 @@ export class AppService {
   constructor(
     @Inject(DataSource)
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   getHello(): string {
     return 'Hello World!';

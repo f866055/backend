@@ -25,14 +25,14 @@ export enum CashShiftStatus {
  * TABLA: cash_shifts (CONTROL DE TURNOS DE CAJA Y ARQUEO)
  * ==============================================================================
  * Gestiona los turnos laborales de los cajeros en GaragePro para auditoría contable:
- * 
+ *
  * 1. FONDO INICIAL (openingFund):
  *    - Dinero en efectivo con el que arranca el turno para dar cambio a los clientes.
- * 
+ *
  * 2. TRAZABILIDAD DEL OPERADOR:
  *    - `openedBy`: Cajero responsable del turno durante la franja horaria.
  *    - `openedAt` y `closedAt`: Marcas temporales exactas del turno.
- * 
+ *
  * 3. REGLA DE UNICIDAD OPERATIVA:
  *    - Solo puede existir una caja en estado OPEN simultáneamente, garantizando
  *      que cada cobro registrado pertenezca con certeza al turno vigente.

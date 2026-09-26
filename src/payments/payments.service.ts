@@ -134,7 +134,11 @@ export class PaymentsService {
       ? manager.getRepository(Payment)
       : this.paymentsRepository;
     const rows = await repo.find({
-      where: { entryId, method: PaymentMethod.CREDIT, status: PaymentStatus.PAID },
+      where: {
+        entryId,
+        method: PaymentMethod.CREDIT,
+        status: PaymentStatus.PAID,
+      },
       order: { paidAt: 'ASC' },
     });
     return rows.map((row) => ({
@@ -242,12 +246,12 @@ export class PaymentsService {
               (await this.paymentsRepository.countBy({
                 entryId: last.id,
               })) > 0;
-throw new PaymentLookupException(
-            hasPayments
-              ? `La placa ${vehicle.plateRaw ?? vehicle.plate} ya salió (ticket ${last.ticketCode} cobrado).`
-              : `La placa ${vehicle.plateRaw ?? vehicle.plate} ya salió y su ticket ${last.ticketCode} quedó sin cobro.`,
-            hasPayments ? 'ALREADY_PAID' : 'CANCELLED',
-          );
+            throw new PaymentLookupException(
+              hasPayments
+                ? `La placa ${vehicle.plateRaw ?? vehicle.plate} ya salió (ticket ${last.ticketCode} cobrado).`
+                : `La placa ${vehicle.plateRaw ?? vehicle.plate} ya salió y su ticket ${last.ticketCode} quedó sin cobro.`,
+              hasPayments ? 'ALREADY_PAID' : 'CANCELLED',
+            );
           }
         }
       }

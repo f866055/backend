@@ -82,11 +82,15 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
-      throw new BadRequestException('No se ha proporcionado ningún archivo de imagen');
+      throw new BadRequestException(
+        'No se ha proporcionado ningún archivo de imagen',
+      );
     }
 
     if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('El archivo proporcionado no es una imagen válida');
+      throw new BadRequestException(
+        'El archivo proporcionado no es una imagen válida',
+      );
     }
 
     const currentUser = await this.usersService.findOne(authUser.id);
@@ -102,7 +106,11 @@ export class UsersController {
       await this.cloudinaryService.deleteAvatar(currentUser.publicId);
     }
 
-    const updated = await this.usersService.updateAvatar(authUser.id, url, publicId);
+    const updated = await this.usersService.updateAvatar(
+      authUser.id,
+      url,
+      publicId,
+    );
     if (!updated) {
       throw new NotFoundException('Error al actualizar el avatar del usuario');
     }

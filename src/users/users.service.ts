@@ -46,7 +46,11 @@ export class UsersService {
     return this.findOne(id);
   }
 
-  async updateAvatar(id: string, imageUrl: string, publicId?: string): Promise<User | null> {
+  async updateAvatar(
+    id: string,
+    imageUrl: string,
+    publicId?: string,
+  ): Promise<User | null> {
     await this.usersRepository.update(id, { image: imageUrl, publicId });
     return this.findOne(id);
   }

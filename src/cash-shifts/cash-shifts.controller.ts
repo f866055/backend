@@ -31,7 +31,9 @@ export class CashShiftsController {
   @Roles(Role.USER, Role.ADMIN)
   @Get()
   findAll(@Query('limit') limit?: string) {
-    const parsedLimit = limit ? Math.min(100, Math.max(1, parseInt(limit, 10) || 50)) : 50;
+    const parsedLimit = limit
+      ? Math.min(100, Math.max(1, parseInt(limit, 10) || 50))
+      : 50;
     return this.cashShiftsService.findAll(parsedLimit);
   }
 

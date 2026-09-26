@@ -34,13 +34,37 @@ export interface PlateFormat {
  * - Motocicleta (formato antiguo): 1 letra + 5 dígitos (A-12345).
  */
 export const PLATE_FORMATS: PlateFormat[] = [
-  { name: 'Auto particular / provincial', example: 'ABC-123', pattern: /^[A-Z][A-Z0-9]{2}\d{3}$/ },
+  {
+    name: 'Auto particular / provincial',
+    example: 'ABC-123',
+    pattern: /^[A-Z][A-Z0-9]{2}\d{3}$/,
+  },
   { name: 'Auto antiguo', example: 'AB-1234', pattern: /^[A-Z]{2}\d{4}$/ },
-  { name: 'Moto / Mototaxi', example: '1234-5A', pattern: /^\d{4}[A-Z0-9]{2}$/ },
-  { name: 'Moto / Trimóvil', example: 'AB-1234', pattern: /^[A-Z0-9]{2}\d{4}$/ },
-  { name: 'Motocicleta (7 car.)', example: 'AB-12345', pattern: /^[A-Z]{2}\d{5}$/ },
-  { name: 'Motocicleta (antiguo)', example: 'A-12345', pattern: /^[A-Z]\d{4,5}$/ },
-  { name: 'Vehículo oficial / emergencia', example: 'PNP-123', pattern: /^(?:PNP|EGA|CGBVP|CD|CC|MI|EP|PR)\d{3,4}$/ },
+  {
+    name: 'Moto / Mototaxi',
+    example: '1234-5A',
+    pattern: /^\d{4}[A-Z0-9]{2}$/,
+  },
+  {
+    name: 'Moto / Trimóvil',
+    example: 'AB-1234',
+    pattern: /^[A-Z0-9]{2}\d{4}$/,
+  },
+  {
+    name: 'Motocicleta (7 car.)',
+    example: 'AB-12345',
+    pattern: /^[A-Z]{2}\d{5}$/,
+  },
+  {
+    name: 'Motocicleta (antiguo)',
+    example: 'A-12345',
+    pattern: /^[A-Z]\d{4,5}$/,
+  },
+  {
+    name: 'Vehículo oficial / emergencia',
+    example: 'PNP-123',
+    pattern: /^(?:PNP|EGA|CGBVP|CD|CC|MI|EP|PR)\d{3,4}$/,
+  },
 ];
 
 /**

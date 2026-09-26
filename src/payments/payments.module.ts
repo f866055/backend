@@ -10,12 +10,7 @@ import { CashShiftsModule } from '../cash-shifts/cash-shifts.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Payment,
-      ParkingEntry,
-      Vehicle,
-      GarageSetting,
-    ]),
+    TypeOrmModule.forFeature([Payment, ParkingEntry, Vehicle, GarageSetting]),
     CashShiftsModule,
   ],
   controllers: [PaymentsController],

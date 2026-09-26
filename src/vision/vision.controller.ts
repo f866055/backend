@@ -33,7 +33,10 @@ export class VisionController {
     @Body('bbox') bbox?: string,
   ) {
     if (!file) {
-      throw new HttpException('No se recibió la imagen', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'No se recibió la imagen',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     return this.visionService.readPlate(file.buffer, file.originalname, bbox);
   }
@@ -42,11 +45,17 @@ export class VisionController {
   @UseInterceptors(FilesInterceptor('files'))
   async readFrames(@UploadedFiles() files: Array<Express.Multer.File>) {
     if (!files || files.length === 0) {
-      throw new HttpException('No se recibieron las imágenes', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'No se recibieron las imágenes',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     if (files.length === 1) {
-      return this.visionService.readPlate(files[0].buffer, files[0].originalname);
+      return this.visionService.readPlate(
+        files[0].buffer,
+        files[0].originalname,
+      );
     }
 
     return this.visionService.readFrames(files.map((f) => f.buffer));

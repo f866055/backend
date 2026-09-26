@@ -8,9 +8,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * desarrollo TypeORM corre con synchronize:true y podría crear la tabla o el
  * enum antes de que corra esta migración, por eso nada es destructivo.
  */
-export class CreateCashShiftsAndPaymentMethods1791000000000
-  implements MigrationInterface
-{
+export class CreateCashShiftsAndPaymentMethods1791000000000 implements MigrationInterface {
   name = 'CreateCashShiftsAndPaymentMethods1791000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

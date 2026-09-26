@@ -38,15 +38,15 @@ export enum PaymentStatus {
  * TABLA: payments (TRANSACCIONES DE COBRO Y LIQUIDACIÓN)
  * ==============================================================================
  * Registra cada cobro o abono monetario asociado a una estancia vehicular:
- * 
+ *
  * 1. RELACIÓN CON EL TICKET (parking_entries):
  *    - Cada transacción se vincula a un ingreso específico (`parking_entry_id`).
- * 
+ *
  * 2. CÁLCULO MONETARIO EXACTO:
  *    - `amount`: Importe total cobrado en la transacción (calculado por el backend
  *      considerando horas completas/fracciones, minutos de gracia y tarifas aplicables).
  *    - `amountReceived` y `changeAmount`: Control de efectivo y vuelto entregado.
- * 
+ *
  * 3. CONTROL DE ABONOS VS. LIQUIDACIÓN FINAL:
  *    - Si method = 'credit', representa un anticipo o pago parcial a cuenta.
  *    - Si liquida el saldo restante, el ticket asociado finaliza y el vehículo sale.
@@ -73,7 +73,12 @@ export class Payment {
   @Column({ name: 'monto', type: 'numeric', precision: 10, scale: 2 })
   amount: string;
 
-  @Column({ name: 'metodo', type: 'enum', enum: PaymentMethod, enumName: 'pagos_metodo_enum' })
+  @Column({
+    name: 'metodo',
+    type: 'enum',
+    enum: PaymentMethod,
+    enumName: 'pagos_metodo_enum',
+  })
   method: PaymentMethod;
 
   // Dinero entregado por el cliente (solo cash). NUMERIC(10,2).
@@ -96,7 +101,13 @@ export class Payment {
   })
   changeAmount: string | null;
 
-  @Column({ name: 'estado', type: 'enum', enum: PaymentStatus, enumName: 'pagos_estado_enum', default: PaymentStatus.PAID })
+  @Column({
+    name: 'estado',
+    type: 'enum',
+    enum: PaymentStatus,
+    enumName: 'pagos_estado_enum',
+    default: PaymentStatus.PAID,
+  })
   status: PaymentStatus;
 
   // Momento en que se registró el pago (= hora de salida del vehículo).

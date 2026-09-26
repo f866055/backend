@@ -6,7 +6,10 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 export type LookupConflictCode = 'ALREADY_PAID' | 'CANCELLED';
 
 export class PaymentLookupException extends BadRequestException {
-  constructor(message: string, readonly code: LookupConflictCode) {
+  constructor(
+    message: string,
+    readonly code: LookupConflictCode,
+  ) {
     super(message);
   }
 }

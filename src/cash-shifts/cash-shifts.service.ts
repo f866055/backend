@@ -9,10 +9,7 @@ import { Payment, PaymentMethod } from '../payments/entities/payment.entity';
 import { User } from '../users/entities/user.entity';
 import { GarageSetting } from '../settings/entities/garage-setting.entity';
 import { OpenCashShiftDto } from './dto/open-cash-shift.dto';
-import {
-  CashShift,
-  CashShiftStatus,
-} from './entities/cash-shift.entity';
+import { CashShift, CashShiftStatus } from './entities/cash-shift.entity';
 
 const DEFAULT_CURRENCY = 'PEN';
 
@@ -86,9 +83,7 @@ export class CashShiftsService {
     return this.summarize(shift, !!open);
   }
 
-  async shiftCollection(
-    shift: CashShift,
-  ): Promise<ShiftCollectionSummary> {
+  async shiftCollection(shift: CashShift): Promise<ShiftCollectionSummary> {
     return this.summarize(shift, shift.status === CashShiftStatus.OPEN);
   }
 
@@ -269,9 +264,7 @@ export class CashShiftsService {
 
     const shift = await this.dataSource.transaction(async (manager) => {
       // Advisory lock: serializa aperturas concurrentes a nivel de sesión BD.
-      await manager.query('SELECT pg_advisory_xact_lock($1)', [
-        9_001_991_000,
-      ]);
+      await manager.query('SELECT pg_advisory_xact_lock($1)', [9_001_991_000]);
 
       const open = await manager.getRepository(CashShift).findOne({
         where: { status: CashShiftStatus.OPEN },
@@ -302,9 +295,7 @@ export class CashShiftsService {
    */
   async closeShift(shiftId: string): Promise<ShiftCollectionSummary> {
     const shift = await this.dataSource.transaction(async (manager) => {
-      await manager.query('SELECT pg_advisory_xact_lock($1)', [
-        9_001_991_000,
-      ]);
+      await manager.query('SELECT pg_advisory_xact_lock($1)', [9_001_991_000]);
 
       const open = await manager.getRepository(CashShift).findOne({
         where: { status: CashShiftStatus.OPEN },

@@ -20,7 +20,6 @@ import {
   PLATE_MIN_LENGTH,
 } from './plates.config';
 
-
 // Fallback coherente con SettingsService cuando aún no hay configuración.
 const DEFAULT_TOTAL_SPACES = 40;
 
@@ -67,7 +66,7 @@ export class VehiclesService {
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   private conflict(
     code: VehicleConflictCode,
@@ -99,10 +98,10 @@ export class VehiclesService {
     Vehicle & {
       isInsideGarage: boolean;
       activeEntry:
-      | (Pick<ParkingEntry, 'id' | 'ticketCode' | 'entryAt'> & {
-        operatorName: string;
-      })
-      | null;
+        | (Pick<ParkingEntry, 'id' | 'ticketCode' | 'entryAt'> & {
+            operatorName: string;
+          })
+        | null;
     }
   > {
     const normalized = normalizePlate(plate);
@@ -127,11 +126,11 @@ export class VehiclesService {
       isInsideGarage: !!activeEntry,
       activeEntry: activeEntry
         ? {
-          id: activeEntry.id,
-          ticketCode: activeEntry.ticketCode,
-          entryAt: activeEntry.entryAt,
-          operatorName: formatOperatorName(activeEntry.createdBy),
-        }
+            id: activeEntry.id,
+            ticketCode: activeEntry.ticketCode,
+            entryAt: activeEntry.entryAt,
+            operatorName: formatOperatorName(activeEntry.createdBy),
+          }
         : null,
     };
   }
@@ -166,8 +165,8 @@ export class VehiclesService {
     // autenticado y se persiste en el ticket (createdById).
     const operator = options.operator?.id
       ? await this.usersRepository.findOne({
-        where: { id: options.operator.id },
-      })
+          where: { id: options.operator.id },
+        })
       : null;
 
     return this.dataSource.transaction(async (manager) => {
@@ -214,8 +213,8 @@ export class VehiclesService {
 
     const operator = options.operator?.id
       ? await this.usersRepository.findOne({
-        where: { id: options.operator.id },
-      })
+          where: { id: options.operator.id },
+        })
       : null;
 
     return this.dataSource.transaction(async (manager) => {

@@ -28,7 +28,13 @@ export class User {
   @Column({ name: 'contrasena' })
   password: string;
 
-  @Column({ name: 'rol', type: 'enum', enum: Role, enumName: 'usuarios_rol_enum', nullable: true })
+  @Column({
+    name: 'rol',
+    type: 'enum',
+    enum: Role,
+    enumName: 'usuarios_rol_enum',
+    nullable: true,
+  })
   role: Role | null;
 
   @Column({ name: 'imagen', nullable: true })

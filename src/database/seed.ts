@@ -31,7 +31,9 @@ async function seed(): Promise<void> {
       existing.role = Role.ADMIN;
       existing.password = await bcrypt.hash(SEED_PASSWORD, 10);
       await usersRepository.save(existing);
-      console.log(`Usuario admin actualizado con rol ADMIN y contraseña: ${SEED_EMAIL}`);
+      console.log(
+        `Usuario admin actualizado con rol ADMIN y contraseña: ${SEED_EMAIL}`,
+      );
       return;
     }
 

@@ -20,7 +20,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) { }
+  ) {}
 
   async register(dto: RegisterDto) {
     const email = dto.email.trim().toLowerCase();
@@ -50,7 +50,7 @@ export class AuthService {
       if (
         error instanceof QueryFailedError &&
         (error as QueryFailedError & { code?: string }).code ===
-        PG_UNIQUE_VIOLATION
+          PG_UNIQUE_VIOLATION
       ) {
         throw new ConflictException('El correo ya está registrado');
       }
