@@ -45,15 +45,24 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  const frontendUrl = configService.get<string>('FRONTEND_URL');
-  if (frontendUrl) {
-    frontendUrl
+  const rawFrontendUrl =
+    configService.get<string>('FRONTEND_URL') ||
+    configService.get<string>('FRONTEND');
+  if (rawFrontendUrl) {
+    rawFrontendUrl
       .split(',')
-      .map((url) => url.trim().replace(/\/+$/, ''))
+      .map((url) => {
+        try {
+          const parsed = new URL(url.trim());
+          return parsed.origin;
+        } catch {
+          return url.trim().replace(/\/+$/, '');
+        }
+      })
       .filter(Boolean)
-      .forEach((url) => {
-        if (!configuredCors.includes(url)) {
-          configuredCors.push(url);
+      .forEach((origin) => {
+        if (!configuredCors.includes(origin)) {
+          configuredCors.push(origin);
         }
       });
   }

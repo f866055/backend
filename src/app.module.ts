@@ -73,15 +73,27 @@ import { VisionModule } from './vision/vision.module';
           };
         }
 
-        const dbPort = Number(configService.get<string>('DB_PORT', '5432'));
+        const dbPort = Number(
+          configService.get<string>('PGPORT') ||
+            configService.get<string>('DB_PORT', '5432'),
+        );
 
         return {
           ...baseOptions,
-          host: configService.get<string>('DB_HOST', 'localhost'),
+          host:
+            configService.get<string>('PGHOST') ||
+            configService.get<string>('DB_HOST', 'localhost'),
           port: dbPort,
-          username: configService.get<string>('DB_USERNAME', 'postgres'),
-          password: configService.get<string>('DB_PASSWORD', 'postgres'),
-          database: configService.get<string>('DB_NAME', 'db_garaje'),
+          username:
+            configService.get<string>('PGUSER') ||
+            configService.get<string>('DB_USERNAME', 'postgres'),
+          password:
+            configService.get<string>('PGPASSWORD') ||
+            configService.get<string>('DB_PASSWORD', 'postgres'),
+          database:
+            configService.get<string>('PGDATABASE') ||
+            configService.get<string>('DB_DATABASE') ||
+            configService.get<string>('DB_NAME', 'db_garaje'),
         };
       },
     }),
