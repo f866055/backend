@@ -5,9 +5,9 @@ WORKDIR /app
 # Instalar herramientas para compilar módulos nativos (bcrypt, etc.)
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
-# Instalar todas las dependencias
+# Instalar dependencias con fallback seguro
 COPY package*.json ./
-RUN npm ci
+RUN npm ci || npm install
 
 # Copiar el código fuente y compilar NestJS
 COPY . .
