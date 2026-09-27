@@ -6,7 +6,10 @@ import type { StringValue } from 'ms';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { LoginThrottleGuard } from './login-throttle.guard';
 import { UsersModule } from '../users/users.module';
+import { resolveJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
@@ -25,7 +28,7 @@ import { UsersModule } from '../users/users.module';
         ) as StringValue;
 
         return {
-          secret: configService.get<string>('JWT_SECRET', 'secret'),
+          secret: resolveJwtSecret(configService),
           signOptions: {
             expiresIn,
           },
@@ -34,7 +37,7 @@ import { UsersModule } from '../users/users.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [JwtModule, AuthService],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, LoginThrottleGuard],
+  exports: [JwtModule, AuthService, JwtAuthGuard, LoginThrottleGuard],
 })
 export class AuthModule {}

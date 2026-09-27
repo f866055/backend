@@ -14,6 +14,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { CashShiftsModule } from './cash-shifts/cash-shifts.module';
 import { ReportsModule } from './reports/reports.module';
 import { VisionModule } from './vision/vision.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -56,12 +57,15 @@ import { VisionModule } from './vision/vision.module';
           type: 'postgres',
           autoLoadEntities: true,
           synchronize,
-          retryAttempts: 3,
-          retryDelay: 1500,
+          // Railway puede arrancar el servicio antes de que Postgres esté
+          // listo: se reintenta durante ~40s en vez de caer en el primer fallo.
+          retryAttempts: 15,
+          retryDelay: 3000,
           extra: {
-            connectionTimeoutMillis: 5000,
-            query_timeout: 10000,
-            statement_timeout: 10000,
+            connectionTimeoutMillis: 10000,
+            query_timeout: 15000,
+            statement_timeout: 15000,
+            max: 10,
           },
           ...(sslOption !== undefined ? { ssl: sslOption } : {}),
         };
@@ -106,6 +110,7 @@ import { VisionModule } from './vision/vision.module';
     CashShiftsModule,
     ReportsModule,
     VisionModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

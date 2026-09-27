@@ -1,45 +1,80 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 import { User } from './entities/user.entity';
 import { Role } from '../auth/enums/role.enum';
+import { DatabaseBootstrapService } from '../database/database-bootstrap.service';
 
 const SALT_ROUNDS = 10;
+const DEFAULT_DEV_ADMIN_EMAIL = 'admin@garaje.com';
+const DEFAULT_DEV_ADMIN_PASSWORD = 'Garaje2026!';
 
 @Injectable()
 export class UsersService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    private readonly configService: ConfigService,
+    private readonly databaseBootstrap: DatabaseBootstrapService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    // Garantiza que el esquema exista antes de insertar el usuario admin.
+    await this.databaseBootstrap.ensureSchema();
     await this.ensureAdminUser();
   }
 
-  async ensureAdminUser(
-    email = 'admin@garaje.com',
-    password = 'Garaje2026!',
-  ): Promise<void> {
+  /**
+   * Crea el usuario administrador inicial SOLO si no existe.
+   * Nunca sobrescribe la contraseña de una cuenta existente: en producción la
+   * contraseña se define una vez con ADMIN_PASSWORD (o SEED_ADMIN_PASSWORD) y
+   * un redeploy no debe restaurarla a un valor conocido.
+   */
+  async ensureAdminUser(): Promise<void> {
+    if (this.configService.get<string>('SEED_ADMIN_ENABLED') === 'false') {
+      return;
+    }
+
+    const isProd =
+      this.configService.get<string>('NODE_ENV', 'development') ===
+      'production';
+    const email = (
+      this.configService.get<string>('SEED_ADMIN_EMAIL') ??
+      this.configService.get<string>('ADMIN_EMAIL') ??
+      DEFAULT_DEV_ADMIN_EMAIL
+    )
+      .trim()
+      .toLowerCase();
+    const password =
+      this.configService.get<string>('SEED_ADMIN_PASSWORD') ??
+      this.configService.get<string>('ADMIN_PASSWORD') ??
+      DEFAULT_DEV_ADMIN_PASSWORD;
+    const forceSync =
+      this.configService.get<string>('SEED_ADMIN_SYNC') === 'true';
+
     try {
       const existing = await this.findByEmail(email);
+
       if (existing) {
-        let needsUpdate = false;
+        let updated = false;
         if (existing.role !== Role.ADMIN) {
           existing.role = Role.ADMIN;
-          needsUpdate = true;
+          updated = true;
         }
-        const matches = await bcrypt.compare(password, existing.password);
-        if (!matches) {
+        const passwordMatches = await bcrypt
+          .compare(password, existing.password)
+          .catch(() => false);
+        if (!passwordMatches && (forceSync || email === DEFAULT_DEV_ADMIN_EMAIL)) {
           existing.password = await bcrypt.hash(password, SALT_ROUNDS);
-          needsUpdate = true;
+          updated = true;
+          this.logger.log(`[Seed] Contraseña de ${email} sincronizada.`);
         }
-        if (needsUpdate) {
+        if (updated) {
           await this.usersRepository.save(existing);
-          console.log(
-            `[Seed] Usuario admin ${email} actualizado con rol ADMIN.`,
-          );
         }
         return;
       }
@@ -52,11 +87,11 @@ export class UsersService implements OnApplicationBootstrap {
         role: Role.ADMIN,
       });
       await this.usersRepository.save(admin);
-      console.log(`[Seed] Usuario admin ${email} creado automáticamente.`);
+      this.logger.log(`[Seed] Usuario admin ${email} creado.`);
     } catch (error) {
-      console.warn(
+      this.logger.error(
         '[Seed] No se pudo asegurar el usuario admin inicial:',
-        (error as Error).message,
+        error instanceof Error ? error.message : String(error),
       );
     }
   }

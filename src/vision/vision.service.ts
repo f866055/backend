@@ -17,6 +17,54 @@ export interface OcrCandidate {
   confidence: number | null;
 }
 
+/** Subconjunto de la página que devuelve Tesseract que usa este servicio. */
+interface OcrPage {
+  text?: string;
+  words?: Array<{ text?: string; confidence?: number }>;
+}
+
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function isBoundingBox(value: unknown): value is BoundingBox {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.x === 'number' &&
+    typeof candidate.y === 'number' &&
+    typeof candidate.width === 'number' &&
+    typeof candidate.height === 'number'
+  );
+}
+
+interface PlateRecognizerCandidate {
+  plate?: string | null;
+  score?: number;
+}
+
+interface PlateRecognizerResult {
+  plate?: string | null;
+  score?: number;
+  box?: { xmin: number; ymin: number; xmax: number; ymax: number } | null;
+  candidates?: PlateRecognizerCandidate[];
+}
+
+interface PlateRecognizerResponse {
+  results?: PlateRecognizerResult[];
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'error desconocido';
+}
+
 export interface VisionResponse {
   detected: boolean;
   plate: string | null;
@@ -176,8 +224,8 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
       try {
         await this.worker.terminate();
         this.logger.log('Worker Tesseract OCR finalizado correctamente.');
-      } catch (e: any) {
-        this.logger.warn(`Error al terminar worker: ${e.message}`);
+      } catch (error: unknown) {
+        this.logger.warn(`Error al terminar worker: ${errorMessage(error)}`);
       }
     }
   }
@@ -195,7 +243,7 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
       this.logger.log('Iniciando motor persistente Tesseract OCR...');
       this.worker = await createWorker('eng');
       await this.worker.setParameters({
-        tessedit_pageseg_mode: '6' as any,
+        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
         tessedit_char_whitelist:
           'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-',
       });
@@ -214,9 +262,9 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `Motor OCR persistente inicializado y listo en ${Date.now() - startInit}ms (warm-up OK).`,
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `Error al inicializar worker OCR persistente: ${err.message}`,
+        `Error al inicializar worker OCR persistente: ${errorMessage(err)}`,
       );
     } finally {
       this.isInitializing = false;
@@ -234,15 +282,15 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
     const startTime = Date.now();
     const token = this.configService.get<string>('PLATE_RECOGNIZER_TOKEN');
 
-    let parsedBbox: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    } | null = null;
+    let parsedBbox: BoundingBox | null = null;
     if (bboxJson) {
       try {
-        parsedBbox = JSON.parse(bboxJson);
+        const parsed: unknown = JSON.parse(bboxJson);
+        if (isBoundingBox(parsed)) {
+          parsedBbox = parsed;
+        } else {
+          this.logger.warn('Bounding box con formato inválido; se ignora.');
+        }
       } catch {
         // Ignorar error de parsing
       }
@@ -255,7 +303,7 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
         const formData = new FormData();
         formData.append('upload', fileBuffer, { filename });
 
-        const response = await axios.post(
+        const response = await axios.post<PlateRecognizerResponse>(
           'https://api.platerecognizer.com/v1/plate-reader/',
           formData,
           {
@@ -277,10 +325,10 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
             typeof bestResult.score === 'number' ? bestResult.score : 0.9;
           const formattedPlate = this.formatPlateText(rawPlate);
 
-          const candidates: OcrCandidate[] = (bestResult.candidates || []).map(
-            (c: any) => ({
+          const candidates: OcrCandidate[] = (bestResult.candidates ?? []).map(
+            (c) => ({
               plate: this.formatPlateText(
-                c.plate?.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                (c.plate ?? '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
               ),
               normalized_plate: normalizePlateKey(c.plate || ''),
               raw_text: c.plate,
@@ -322,9 +370,9 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
             timings: { total_ms: totalMs },
           };
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.logger.warn(
-          `Plate Recognizer API no disponible (${error.message}). Continuando con motor local...`,
+          `Plate Recognizer API no disponible (${errorMessage(error)}). Continuando con motor local...`,
         );
       }
     }
@@ -484,9 +532,9 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
           .threshold(128)
           .toBuffer(),
       );
-    } catch (e: any) {
+    } catch (error: unknown) {
       this.logger.warn(
-        `Error en preprocesamiento Sharp: ${e.message}. Usando imagen original.`,
+        `Error en preprocesamiento Sharp: ${errorMessage(error)}. Usando imagen original.`,
       );
       variants.push(imageBuffer);
     }
@@ -520,16 +568,12 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
       const tOcrStart = Date.now();
 
       try {
-        let resultData: any;
+        let resultData: OcrPage = {};
         if (this.worker) {
           const res = await this.worker.recognize(variantBuffer);
           resultData = res.data;
         } else {
-          const res = await Tesseract.recognize(variantBuffer, 'eng', {
-            tessedit_pageseg_mode: '6',
-            tessedit_char_whitelist:
-              'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-',
-          } as any);
+          const res = await Tesseract.recognize(variantBuffer, 'eng');
           resultData = res.data;
         }
 
@@ -546,10 +590,7 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
           1.0 - i * 0.1,
         );
 
-        const pageData = resultData as unknown as {
-          words?: Array<{ text: string; confidence: number }>;
-        };
-        const words = pageData.words || [];
+        const words = resultData.words ?? [];
 
         for (const w of words) {
           const wRaw = (w.text || '').trim();
@@ -570,8 +611,10 @@ export class VisionService implements OnModuleInit, OnModuleDestroy {
           (c) => c.confidence >= 0.88,
         );
         if (topCandidates.length > 0) break;
-      } catch (err: any) {
-        this.logger.warn(`Error en pasada OCR variante ${i}: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(
+          `Error en pasada OCR variante ${i}: ${errorMessage(err)}`,
+        );
       }
     }
 

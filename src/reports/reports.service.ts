@@ -20,8 +20,6 @@ const DEFAULT_TOTAL_SPACES = 40;
 const DEFAULT_RATE_PER_HOUR = 2.0;
 const DEFAULT_CURRENCY = 'PEN';
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 const round2 = (value: number): number =>
   Math.round((value + Number.EPSILON) * 100) / 100;
 
@@ -71,11 +69,6 @@ function startOfDay(value?: string | Date): Date {
 /** Fin (23:59:59.999) de una fecha local. */
 function endOfDay(value?: string | Date): Date {
   return parseDateBoundary(value, true);
-}
-
-/** Horas (fraccionales) entre dos instantes; nunca menor que 0. */
-function hoursBetween(from: Date, to: Date): number {
-  return Math.max(0, (to.getTime() - from.getTime()) / 3_600_000);
 }
 
 export type PaymentStatusKind = 'pagado' | 'pendiente';
@@ -311,7 +304,7 @@ export class ReportsService {
     if (isInside) {
       status = 'En estacionamiento';
       statusKind = 'pendiente';
-    } else if (payment && payment.status === 'paid') {
+    } else if (payment && payment.status === PaymentStatus.PAID) {
       amount = Number(payment.amount);
       method = payment.method;
       status = 'Pagado';
@@ -423,8 +416,8 @@ export class ReportsService {
 
     const vehiclesAttendedDelta = pct(vehiclesAttended, vehiclesPrev);
     const avgStayDelta =
-      avgPrevMsNum !== null && (avgStayMsNum ?? 0) !== null
-        ? pct(avgStayMsNum ?? 0, avgPrevMsNum)
+      avgStayMsNum !== null && avgPrevMsNum !== null
+        ? pct(avgStayMsNum, avgPrevMsNum)
         : null;
 
     const avgStayNote =

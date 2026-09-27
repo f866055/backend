@@ -10,11 +10,9 @@ function getNetworkIps(): { name: string; ip: string }[] {
   const results: { name: string; ip: string }[] = [];
 
   for (const [name, netList] of Object.entries(interfaces)) {
-    for (const net of netList || []) {
-      if (
-        (net.family === 'IPv4' || (net as any).family === 4) &&
-        !net.internal
-      ) {
+    for (const net of netList ?? []) {
+      // Node >= 18 devuelve `family` como string; versiones previas, como número.
+      if (String(net.family) === 'IPv4' && !net.internal) {
         results.push({ name, ip: net.address });
       }
     }
@@ -43,13 +41,13 @@ async function bootstrap() {
       'https://frontend-production-1824.up.railway.app',
       'http://localhost:3001',
       ...(
-        (configService.get<string>('CORS_ORIGIN') ||
-          configService.get<string>('CORS_ORIGINS') ||
-          '')
-          .split(',')
-          .map((origin) => origin.trim())
-          .filter(Boolean)
-      ),
+        configService.get<string>('CORS_ORIGIN') ||
+        configService.get<string>('CORS_ORIGINS') ||
+        ''
+      )
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
     ]),
   );
 
@@ -75,24 +73,33 @@ async function bootstrap() {
       });
   }
 
+  // Los comodines de dominio solo se activan de forma explícita: aceptar
+  // cualquier "*.railway.app" o "*.vercel.app" permite que otro proyecto
+  // llame a esta API con las credenciales de un usuario.
+  const allowRailwaySubdomains =
+    configService.get<string>('CORS_ALLOW_RAILWAY_SUBDOMAINS') === 'true';
+  const allowVercelSubdomains =
+    configService.get<string>('CORS_ALLOW_VERCEL_SUBDOMAINS') === 'true';
+  const privateNetworkPattern =
+    /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/;
+
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       // Permitir peticiones sin origen (apps nativas, healthchecks, mobile web, Postman)
       if (!origin) return callback(null, true);
 
       const isAllowed =
         configuredCors.includes(origin) ||
-        /\.railway\.app$/.test(origin) ||
-        /\.vercel\.app$/.test(origin) ||
-        /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(
-          origin,
-        );
+        (allowRailwaySubdomains && /\.railway\.app$/.test(origin)) ||
+        (allowVercelSubdomains && /\.vercel\.app$/.test(origin)) ||
+        privateNetworkPattern.test(origin);
 
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origen no permitido por CORS: ${origin}`));
-      }
+      // Un origen no permitido se rechaza sin header CORS (respuesta 500 sería
+      // engañosa para el cliente y oculta la causa real).
+      callback(null, isAllowed);
     },
     credentials: true,
   });
@@ -137,16 +144,18 @@ bootstrap().catch((error: unknown) => {
   const message =
     error instanceof Error
       ? error.message
-      : String(error ?? 'Error desconocido');
+      : typeof error === 'string'
+        ? error
+        : 'Error desconocido';
 
   if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(message)) {
-    const host = process.env.DB_HOST ?? 'localhost';
-    const dbPort = process.env.DB_PORT ?? '5432';
+    const host = process.env.PGHOST ?? process.env.DB_HOST ?? 'localhost';
+    const dbPort = process.env.PGPORT ?? process.env.DB_PORT ?? '5432';
     console.error(
-      `\n❌ [DB] No se pudo conectar a PostgreSQL en ${host}:${dbPort} (timeout de 5s agotado).`,
+      `\n❌ [DB] No se pudo conectar a PostgreSQL en ${host}:${dbPort}.`,
     );
     console.error(
-      '   → Verifica que el servicio "postgresql-x64-18" esté iniciado y vuelve a ejecutar el backend.\n',
+      '   → Revisa DATABASE_URL y que el servicio de base de datos esté en el mismo proyecto de Railway.\n',
     );
   } else {
     console.error('\n❌ Error fatal al iniciar el servidor:', message, '\n');

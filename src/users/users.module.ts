@@ -4,9 +4,10 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { User } from './entities/user.entity';
 import { CloudinaryService } from './cloudinary.service';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [TypeOrmModule.forFeature([User]), DatabaseModule],
   controllers: [UsersController],
   providers: [UsersService, CloudinaryService],
   exports: [UsersService, CloudinaryService],

@@ -7,6 +7,12 @@ import {
 } from 'cloudinary';
 import sharp from 'sharp';
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'error desconocido';
+}
+
 @Injectable()
 export class CloudinaryService {
   private readonly logger = new Logger(CloudinaryService.name);
@@ -49,9 +55,9 @@ export class CloudinaryService {
         .resize(400, 400, { fit: 'cover', position: 'center' })
         .webp({ quality: 85 })
         .toBuffer();
-    } catch (sharpError: any) {
+    } catch (sharpError: unknown) {
       this.logger.warn(
-        `No se pudo procesar con sharp (${sharpError?.message}), usando buffer original.`,
+        `No se pudo procesar con sharp (${errorMessage(sharpError)}), usando buffer original.`,
       );
       optimizedBuffer = file.buffer;
       mimeType = file.mimetype || 'image/jpeg';
@@ -65,15 +71,14 @@ export class CloudinaryService {
           `Avatar subido exitosamente a Cloudinary: ${cloudinaryResult.url}`,
         );
         return cloudinaryResult;
-      } catch (cloudinaryError: any) {
+      } catch (cloudinaryError: unknown) {
+        const message = errorMessage(cloudinaryError);
         this.logger.warn(
-          `Fallo al subir a Cloudinary (${cloudinaryError?.message || 'Error'}). Activando fallback de almacenamiento optimizado.`,
+          `Fallo al subir a Cloudinary (${message}). Activando fallback de almacenamiento optimizado.`,
         );
         // Si las credenciales son inválidas (401 / unknown api_key), desactivar Cloudinary para evitar demoras
-        if (
-          cloudinaryError?.http_code === 401 ||
-          cloudinaryError?.message?.toLowerCase().includes('api_key')
-        ) {
+        const httpCode = (cloudinaryError as { http_code?: number })?.http_code;
+        if (httpCode === 401 || message.toLowerCase().includes('api_key')) {
           this.isConfigured = false;
         }
       }
@@ -111,7 +116,15 @@ export class CloudinaryService {
           result: UploadApiResponse | undefined,
         ) => {
           if (error) {
-            return reject(error);
+            const failure: Error =
+              error instanceof Error
+                ? error
+                : new Error(
+                    typeof error.message === 'string' && error.message
+                      ? error.message
+                      : 'Error de Cloudinary',
+                  );
+            return reject(failure);
           }
           if (!result) {
             return reject(new Error('Respuesta vacía de Cloudinary'));
@@ -131,9 +144,9 @@ export class CloudinaryService {
     if (!this.isConfigured || !publicId) return;
     try {
       await cloudinary.uploader.destroy(publicId);
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.warn(
-        `No se pudo eliminar el avatar anterior en Cloudinary (${publicId}): ${err?.message}`,
+        `No se pudo eliminar el avatar anterior en Cloudinary (${publicId}): ${errorMessage(err)}`,
       );
     }
   }

@@ -16,6 +16,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { LoginThrottleGuard } from './login-throttle.guard';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthUser } from './current-user.decorator';
 import { JWT_COOKIE_NAME } from './jwt.strategy';
@@ -42,6 +43,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(LoginThrottleGuard)
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,

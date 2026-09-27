@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 
 // Código estructurado que distingue los motivos de una búsqueda fallida en
 // Caja: un ticket que YA se cobró (ALREADY_PAID) no es un "no existe"; un
