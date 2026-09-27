@@ -2,15 +2,21 @@ FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Instalar dependencias completas para compilar
+# Instalar herramientas para compilar módulos nativos (bcrypt, etc.)
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+# Instalar todas las dependencias
 COPY package*.json ./
 RUN npm ci
 
-# Copiar el código fuente y compilar TypeScript con NestJS
+# Copiar el código fuente y compilar NestJS
 COPY . .
 RUN npm run build
 
-# Imagen final de ejecución en producción
+# Remover devDependencies para dejar solo dependencias de producción
+RUN npm prune --omit=dev
+
+# Imagen final ligera de ejecución
 FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
@@ -18,11 +24,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Instalar únicamente dependencias de producción
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-# Copiar el código compilado desde la etapa anterior
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
